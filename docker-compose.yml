@@ -1,0 +1,21 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=3).status)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  verify:
+    build: .
+    entrypoint: ["python", "verify.py"]
+    environment:
+      BASE_URL: http://app:8080
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles: ["verify"]
