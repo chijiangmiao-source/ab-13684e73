@@ -1,0 +1,25 @@
+services:
+  audit:
+    build: .
+    image: pulse-audit:latest
+    environment:
+      AUDIT_PORT: "8080"
+    ports:
+      # Host-side port is configurable: AUDIT_HOST_PORT=9090 docker compose up -d
+      - "${AUDIT_HOST_PORT:-8080}:8080"
+    restart: unless-stopped
+
+  # One-shot verification service: runs build checks, the test-suite
+  # (multi-solution counts, canonical arbitration, pair membership,
+  # window boundaries) and an HTTP smoke against the running service,
+  # then exits 0 on success / non-zero on failure.
+  verify:
+    image: pulse-audit:latest
+    build: .
+    depends_on:
+      audit:
+        condition: service_healthy
+    environment:
+      AUDIT_BASE_URL: "http://audit:8080"
+    restart: "no"
+    command: ["python", "scripts/verify.py"]
